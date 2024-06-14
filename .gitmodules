@@ -1,0 +1,3 @@
+[submodule "LiteHttpd.Dev"]
+	path = LiteHttpd.Dev
+	url = https://github.com/LiteHttpd/LiteHttpd.Dev.git
