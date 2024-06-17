@@ -36,3 +36,6 @@
 
 # Output
 [Oo]ut/**
+
+# Config
+config/LiteHttpd.FileServer.json

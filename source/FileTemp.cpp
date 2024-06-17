@@ -1,6 +1,6 @@
 ﻿#include "FileTemp.h"
 
-#include <fstream>
+#include <cstdio>
 
 FileTemp::FileTemp(time_t survivalTime)
 	: survivalTime(survivalTime) {}
@@ -51,19 +51,17 @@ void FileTemp::checkTempTime() {
 }
 
 FileTemp::MemoryBlock FileTemp::loadFile(const std::string& path) {
-	std::ifstream inputStream;
-	inputStream.open(path);
+	FILE* file = fopen(path.c_str(), "rb");
+	if (file) {
+		fseek(file, 0, SEEK_END);
+		size_t fileSize = ftell(file);
+		rewind(file);
 
-	if (inputStream.is_open()) {
-		inputStream.seekg(0, std::ios::end);
-		size_t length = inputStream.tellg();
-		inputStream.seekg(0, std::ios::beg);
+		auto buffer = std::shared_ptr<char>(new char[fileSize], [](char* p) { delete[] p; });
+		fread(buffer.get(), 1, fileSize, file);
+		fclose(file);
 
-		auto buffer = std::shared_ptr<char>(new char[length], [](char* p) { delete[] p; });
-		inputStream.read(buffer.get(), length);
-		inputStream.close();
-
-		return { buffer, length };
+		return { buffer, fileSize };
 	}
 
 	return { nullptr, 0 };

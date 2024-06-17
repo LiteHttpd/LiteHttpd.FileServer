@@ -19,22 +19,72 @@ if (MSVC)
     add_compile_definitions ("_CRT_SECURE_NO_WARNINGS")
 endif (MSVC)
 
+if (DEFINED OUTPUT_DIR)
+	set (CONFIG_OUTPUT_DIR ${OUTPUT_DIR})
+else ()
+	set (CONFIG_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+endif ()
+
 # Dev Kit
 if (NOT TARGET LiteHttpdDev::core)
 	add_subdirectory (LiteHttpd.Dev)
 endif ()
 
+# Generate Config
+if (WIN32)
+	set (FILESERVER_WWWROOT "C:/wwwroot")
+elseif (UNIX)
+	set (FILESERVER_WWWROOT "/home/wwwroot")
+endif ()
+configure_file (
+	"${CMAKE_CURRENT_SOURCE_DIR}/configTemplate/LiteHttpd.FileServer.json.in"
+	"${CMAKE_CURRENT_SOURCE_DIR}/config/LiteHttpd.FileServer.json"
+	@ONLY
+)
+set_source_files_properties (
+	"${CMAKE_CURRENT_SOURCE_DIR}/config/LiteHttpd.FileServer.json"
+	PROPERTIES GENERATED TRUE
+)
+
+# Copy Config
+file (GLOB_RECURSE MODULE_CONFIG_SRC CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/config/*")
+set (MODULE_CONFIG_OUTPUT "")
+foreach (ITEM ${MODULE_CONFIG_SRC})
+    string (REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/config" "${CONFIG_OUTPUT_DIR}" ITEM_TARGET ${ITEM})
+	list (APPEND MODULE_CONFIG_OUTPUT ${ITEM_TARGET})
+
+	cmake_path (CONVERT ${ITEM} TO_NATIVE_PATH_LIST ITEM_INPUT)
+	cmake_path (CONVERT ${ITEM_TARGET} TO_NATIVE_PATH_LIST ITEM_OUTPUT)
+
+    add_custom_command (
+		OUTPUT ${ITEM_TARGET}
+		COMMAND copy ${ITEM_INPUT} ${ITEM_OUTPUT}
+		DEPENDS ${ITEM}
+		COMMENT "Copying module config file: ${ITEM}"
+		VERBATIM)
+endforeach (ITEM ${MODULE_CONFIG_SRC})
+add_custom_target (fileserver_module_config_copy
+	DEPENDS ${MODULE_CONFIG_OUTPUT}
+	COMMENT "Copy fileserver module configs"
+	VERBATIM)
+
+# CJsonObject
+set (CJSON_SRC "./CJsonObject/cJson.c" "./CJsonObject/CJsonObject.cpp")
+set (CJSON_INC "./CJsonObject")
+
 # Source
 file (GLOB_RECURSE FILESERVER_SRC CONFIGURE_DEPENDS "./source/*.cpp" "./source/*.c" "./source/*.rc")
 
 # Target
-add_library (LiteHttpd.FileServer SHARED ${FILESERVER_SRC})
+add_library (LiteHttpd.FileServer SHARED ${FILESERVER_SRC} ${CJSON_SRC})
+target_include_directories (LiteHttpd.FileServer PRIVATE ${CJSON_INC})
 target_compile_definitions (LiteHttpd.FileServer PRIVATE
 	"PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
 	"PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
 	"PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH}"
 )
 target_link_libraries (LiteHttpd.FileServer PRIVATE LiteHttpdDev::core)
+add_dependencies (LiteHttpd.FileServer fileserver_module_config_copy)
 
 if (NOT MSVC)
 	target_compile_options (LiteHttpd.FileServer PRIVATE

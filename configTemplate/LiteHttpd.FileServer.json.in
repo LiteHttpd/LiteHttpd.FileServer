@@ -1,0 +1,7 @@
+﻿{
+  "survival": 60,
+  "root": "@FILESERVER_WWWROOT@/$hostname$",
+  "page404": "404.html",
+  "page403": "403.html",
+  "defaultPage": "index.html"
+}
