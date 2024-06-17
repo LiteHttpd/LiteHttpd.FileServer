@@ -1,3 +1,6 @@
 [submodule "LiteHttpd.Dev"]
 	path = LiteHttpd.Dev
 	url = https://github.com/LiteHttpd/LiteHttpd.Dev.git
+[submodule "CJsonObject"]
+	path = CJsonObject
+	url = https://github.com/Bwar/CJsonObject.git
