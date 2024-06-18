@@ -26,18 +26,27 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 		path += this->config->getDefaultPage();
 	}
 
+	/** Log */
+	rp.log(RequestParams::LogLevel::INFO, "Request file root: " + root);
+	rp.log(RequestParams::LogLevel::INFO, "Request file path: " + path);
+
 	/** Check Path In Root */
 	if (!FileServerModule::isSubpath(root + "/", path)) {
+		rp.log(RequestParams::LogLevel::WARNING, "Request file out of root directory!");
+
 		/** Get 403 Path */
 		std::string errPath = this->config->get403Page();
 		errPath = FileServerModule::replaceString(errPath, "\\$hostname\\$", rp.addr);
 		errPath = FileServerModule::replaceString(errPath, "\\$port\\$", std::to_string(rp.port));
 		errPath = FileServerModule::replaceString(errPath, "\\$root\\$", root);
+		rp.log(RequestParams::LogLevel::INFO, "403 page path: " + errPath);
 
 		/** Get 403 Page */
 		auto [errPtr, errSize] = this->temp->get(errPath);
 		if (!errPtr) {
+			rp.log(RequestParams::LogLevel::ERROR_, "Can't load 403 page, send 500!");
 			rp.reply(500, std::vector<char>{});
+			return;
 		}
 
 		/** Reply 403 */
@@ -45,6 +54,7 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 		data.resize(errSize);
 		std::memcpy(data.data(), errPtr.get(), errSize);
 		rp.reply(403, data);
+		return;
 	}
 
 	/** Get Data */
@@ -52,16 +62,21 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 
 	/** 404 */
 	if (!ptr) {
+		rp.log(RequestParams::LogLevel::WARNING, "Can't load file!");
+
 		/** Get 404 Path */
 		std::string errPath = this->config->get404Page();
 		errPath = FileServerModule::replaceString(errPath, "\\$hostname\\$", rp.addr);
 		errPath = FileServerModule::replaceString(errPath, "\\$port\\$", std::to_string(rp.port));
 		errPath = FileServerModule::replaceString(errPath, "\\$root\\$", root);
+		rp.log(RequestParams::LogLevel::INFO, "404 page path: " + errPath);
 
 		/** Get 404 Page */
 		auto [errPtr, errSize] = this->temp->get(errPath);
 		if (!errPtr) {
+			rp.log(RequestParams::LogLevel::ERROR_, "Can't load 404 page, send 500!");
 			rp.reply(500, std::vector<char>{});
+			return;
 		}
 
 		/** Reply 404 */
@@ -69,16 +84,22 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 		data.resize(errSize);
 		std::memcpy(data.data(), errPtr.get(), errSize);
 		rp.reply(404, data);
+		return;
 	}
 
 	/** Set MIME Type */
-	rp.addHeader("Content-Type", FileServerModule::getMIMIType(path));
+	{
+		std::string mimeType = FileServerModule::getMIMIType(path);
+		rp.addHeader("Content-Type", mimeType);
+		rp.log(RequestParams::LogLevel::INFO, "Set MIME type: " + mimeType);
+	}
 
 	/** Reply 200 */
 	std::vector<char> data;
 	data.resize(size);
 	std::memcpy(data.data(), ptr.get(), size);
 	rp.reply(200, data);
+	rp.log(RequestParams::LogLevel::INFO, "Send 200 with data size: " + std::to_string(size));
 }
 
 const std::string FileServerModule::replaceString(const std::string& input,
