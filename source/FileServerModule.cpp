@@ -89,7 +89,7 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 
 	/** Set MIME Type */
 	{
-		std::string mimeType = FileServerModule::getMIMIType(path);
+		std::string mimeType = FileServerModule::getMIMEType(path);
 		rp.addHeader("Content-Type", mimeType);
 		rp.log(RequestParams::LogLevel::INFO, "Set MIME type: " + mimeType);
 	}
@@ -123,7 +123,7 @@ bool FileServerModule::isSubpath(const std::string& base, const std::string& pat
 	return itBase == absoluteBase.end();
 }
 
-const std::string FileServerModule::getMIMIType(const std::string& path) {
+const std::string FileServerModule::getMIMEType(const std::string& path) {
 	static std::map<std::string, std::string> mimeTypes = {
 		/** Text Files */
 		{".html", "text/html"},

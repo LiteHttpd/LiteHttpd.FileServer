@@ -21,5 +21,5 @@ private:
 	static const std::string replaceString(const std::string& input,
 		const std::string& what, const std::string& replaceTo);
 	static bool isSubpath(const std::string& base, const std::string& path);
-	static const std::string getMIMIType(const std::string& path);
+	static const std::string getMIMEType(const std::string& path);
 };
