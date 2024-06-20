@@ -87,6 +87,46 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 		return;
 	}
 
+	/** PHP */
+	if (this->config->getFPMOn()) {
+		/** FPM Config */
+		auto& fpmConf = this->config->getFPMConf();
+
+		/** Check Path Type */
+		if (FileServerModule::isPathType(path, fpmConf.surfix)) {
+			/** Log */
+			rp.log(RequestParams::LogLevel::INFO, "Wait for FPM...");
+
+			/** Create Param */
+			RequestParams::ParamList fpmParam;
+			FileServerModule::createFPMParam(fpmParam, rp, fpmConf,
+				path, root, this->getDevKitVersion());
+
+			/** Send Data */
+			RequestParams::FPMResult fpmResult = 
+				rp.callFPM(fpmConf.address, fpmConf.port, rp.data, fpmParam);
+
+			/** Result Invalid */
+			if (!std::get<1>(fpmResult)) {
+				rp.reply(500, std::vector<char>{});
+				rp.log(RequestParams::LogLevel::ERROR_, "FPM returned false, send 500!");
+				return;
+			}
+
+			/** Headers */
+			auto headers = FileServerModule::parseFPMHeader(std::get<0>(fpmResult));
+			for (auto& i : headers) {
+				rp.addHeader(i.first, i.second);
+			}
+
+			/** Reply 200 */
+			auto data = FileServerModule::parseFPMContent(std::get<0>(fpmResult));
+			rp.reply(200, data);
+			rp.log(RequestParams::LogLevel::INFO, "Send 200 with data size: " + std::to_string(data.size()));
+			return;
+		}
+	}
+
 	/** Set MIME Type */
 	{
 		std::string mimeType = FileServerModule::getMIMEType(path);
@@ -121,6 +161,15 @@ bool FileServerModule::isSubpath(const std::string& base, const std::string& pat
 	}
 
 	return itBase == absoluteBase.end();
+}
+
+bool FileServerModule::isPathType(const std::string& path, const std::string& type) {
+	std::string::size_type idx = path.rfind('.');
+	if (idx != std::string::npos) {
+		std::string ext = path.substr(idx);
+		return type == ext;
+	}
+	return false;
 }
 
 const std::string FileServerModule::getMIMEType(const std::string& path) {
@@ -201,6 +250,171 @@ const std::string FileServerModule::getMIMEType(const std::string& path) {
 		}
 	}
 	return "application/octet-stream";
+}
+
+void FileServerModule::createFPMParam(RequestParams::ParamList& fpmParam,
+	const RequestParams& rp, const ModuleConfig::FPMConfig& fpmConf,
+	const std::string& path, const std::string& root,
+	const std::tuple<int, int, int>& version) {
+	fpmParam["SCRIPT_FILENAME"] = path;
+	fpmParam["SCRIPT_NAME"] = rp.path;
+	fpmParam["DOCUMENT_ROOT"] = root + "/";
+	{
+		fpmParam["REQUEST_URI"] = rp.path;
+		if (!rp.query.empty()) {
+			fpmParam["REQUEST_URI"] += ("?" + rp.query);
+		}
+	}
+	fpmParam["PHP_SELF"] = rp.path;
+	fpmParam["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	fpmParam["PATH"] = "";
+	fpmParam["PHP_FCGI_CHILDREN"] = "2";
+	fpmParam["PHP_FCGI_MAX_REQUESTS"] = "1000";
+	fpmParam["FCGI_ROLE"] = "RESPONDER";
+	{
+		auto& [major, minor, patch] = version;
+		fpmParam["SERVER_SOFTWARE"] = "LiteHttpd.FileServer/sdk" + std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
+	}
+	fpmParam["SERVER_NAME"] = "LiteHttpd.FileServer";
+	fpmParam["GATEWAY_INTERFACE"] = "CGI/1.1";
+	fpmParam["SERVER_PORT"] = std::to_string(fpmConf.port);
+	fpmParam["SERVER_ADDR"] = fpmConf.address;
+	fpmParam["REMOTE_PORT"] = std::to_string(rp.peerPort);
+	fpmParam["REMOTE_ADDR"] = rp.peerAddr;
+	fpmParam["PATH_INFO"] = rp.path;
+	fpmParam["PATH_TRANSLATED"] = path;
+	fpmParam["QUERY_STRING"] = rp.query;
+	switch (rp.method) {
+	case RequestParams::MethodType::GET:
+		fpmParam["REQUEST_METHOD"] = "GET";
+		break;
+	case RequestParams::MethodType::POST:
+		fpmParam["REQUEST_METHOD"] = "POST";
+		break;
+	case RequestParams::MethodType::HEAD:
+		fpmParam["REQUEST_METHOD"] = "HEAD";
+		break;
+	case RequestParams::MethodType::PUT:
+		fpmParam["REQUEST_METHOD"] = "PUT";
+		break;
+	case RequestParams::MethodType::DELETE_:
+		fpmParam["REQUEST_METHOD"] = "DELETE";
+		break;
+	case RequestParams::MethodType::OPTIONS:
+		fpmParam["REQUEST_METHOD"] = "OPTIONS";
+		break;
+	case RequestParams::MethodType::TRACE:
+		fpmParam["REQUEST_METHOD"] = "TRACE";
+		break;
+	case RequestParams::MethodType::CONNECT:
+		fpmParam["REQUEST_METHOD"] = "CONNECT";
+		break;
+	case RequestParams::MethodType::PATCH:
+		fpmParam["REQUEST_METHOD"] = "PATCH";
+		break;
+	case RequestParams::MethodType::PROPFIND:
+		fpmParam["REQUEST_METHOD"] = "PROPFIND";
+		break;
+	case RequestParams::MethodType::PROPPATCH:
+		fpmParam["REQUEST_METHOD"] = "PROPPATCH";
+		break;
+	case RequestParams::MethodType::MKCOL:
+		fpmParam["REQUEST_METHOD"] = "MKCOL";
+		break;
+	case RequestParams::MethodType::LOCK:
+		fpmParam["REQUEST_METHOD"] = "LOCK";
+		break;
+	case RequestParams::MethodType::UNLOCK:
+		fpmParam["REQUEST_METHOD"] = "UNLOCK";
+		break;
+	case RequestParams::MethodType::COPY:
+		fpmParam["REQUEST_METHOD"] = "COPY";
+		break;
+	case RequestParams::MethodType::MOVE:
+		fpmParam["REQUEST_METHOD"] = "MOVE";
+		break;
+	}
+	fpmParam["HTTPS"] = (rp.protocol == RequestParams::ProtocolType::HTTPS) ? "on" : "off";
+	fpmParam["REDIRECT_STATUS"] = "200";
+	fpmParam["SERVER_PROTOCOL"] = "HTTP/1.1";
+	fpmParam["HTTP_HOST"] = rp.addr + ":" + std::to_string(rp.port);
+	{
+		auto it = rp.headers.find("Connection");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_CONNECTION"] = it->second;
+		}
+	}
+	{
+		auto it = rp.headers.find("Accept");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_ACCEPT"] = it->second;
+		}
+	}
+	{
+		auto it = rp.headers.find("Accept-Encoding");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_ACCEPT_ENCODING"] = it->second;
+		}
+	}
+	{
+		auto it = rp.headers.find("Accept-Language");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_ACCEPT_LANGUAGE"] = it->second;
+		}
+	}
+	{
+		auto it = rp.headers.find("User-Agent");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_UAER_AGENT"] = it->second;
+		}
+	}
+	{
+		auto it = rp.headers.find("Referer");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_REFERER"] = it->second;
+		}
+	}
+	{
+		auto it = rp.headers.find("Cookie");
+		if (it != rp.headers.end()) {
+			fpmParam["HTTP_COOKIE"] = it->second;
+		}
+	}
+}
+
+const RequestParams::ParamList FileServerModule::parseFPMHeader(const std::vector<char>& data) {
+	RequestParams::ParamList headers;
+
+	auto it = data.begin();
+	while (it != data.end()) {
+		auto line_end = std::search(it, data.end(), "\r\n", "\r\n" + 2);
+		if (line_end == it) break;
+
+		auto delimiter_pos = std::find(it, line_end, ':');
+		if (delimiter_pos != line_end) {
+			std::string key(it, delimiter_pos);
+			std::string value(delimiter_pos + 2, line_end);
+			headers[FileServerModule::trim(key)] = FileServerModule::trim(value);
+		}
+
+		it = line_end + 2;
+	}
+
+	return headers;
+}
+
+const std::vector<char> FileServerModule::parseFPMContent(const std::vector<char>& data) {
+	auto it = std::search(data.begin(), data.end(), "\r\n\r\n", "\r\n\r\n" + 4);
+	if (it != data.end()) {
+		return std::vector<char>{it + 4, data.end()};
+	}
+	return {};
+}
+
+const std::string FileServerModule::trim(const std::string& str) {
+	auto front = std::find_if_not(str.begin(), str.end(), [](int c) { return std::isspace(c); });
+	auto back = std::find_if_not(str.rbegin(), str.rend(), [](int c) { return std::isspace(c); }).base();
+	return (front < back) ? std::string{ front, back } : std::string{};
 }
 
 LITEHTTPD_MODULE(FileServerModule)

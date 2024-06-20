@@ -33,6 +33,31 @@ ModuleConfig::ModuleConfig(const std::string& path) {
 		if (object.KeyExist("defaultPage")) {
 			object.Get("defaultPage", this->defaultPage);
 		}
+
+		/** Get FPM Config */
+		if (object.KeyExist("fpm")) {
+			auto& fpmObj = object["fpm"];
+			if (!fpmObj.IsEmpty()) {
+				this->fpm = true;
+
+				/** Get Surfix */
+				if (fpmObj.KeyExist("surfix")) {
+					fpmObj.Get("surfix", this->fpmConf.surfix);
+				}
+
+				/** Get Address */
+				if (fpmObj.KeyExist("address")) {
+					fpmObj.Get("address", this->fpmConf.address);
+				}
+
+				/** Get Port */
+				if (fpmObj.KeyExist("port")) {
+					int port = 0;
+					fpmObj.Get("port", port);
+					this->fpmConf.port = port;
+				}
+			}
+		}
 	}
 }
 
@@ -54,6 +79,14 @@ const std::string ModuleConfig::get403Page() const {
 
 const std::string ModuleConfig::getDefaultPage() const {
 	return this->defaultPage;
+}
+
+bool ModuleConfig::getFPMOn() const {
+	return this->fpm;
+}
+
+const ModuleConfig::FPMConfig& ModuleConfig::getFPMConf() const {
+	return this->fpmConf;
 }
 
 const std::string ModuleConfig::readFile(const std::string& path) {

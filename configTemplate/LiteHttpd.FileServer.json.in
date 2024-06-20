@@ -3,5 +3,10 @@
   "root": "@FILESERVER_WWWROOT@/$hostname$",
   "page404": "404.html",
   "page403": "403.html",
-  "defaultPage": "index.html"
+  "defaultPage": "index.html",
+  "fpm": {
+    "surfix": ".php",
+    "address": "127.0.0.1",
+    "port":  9000
+  }
 }
