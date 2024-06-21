@@ -18,6 +18,8 @@ public:
 		std::string surfix = ".php";
 		std::string address = "127.0.0.1";
 		uint16_t port = 9000;
+		int children = 2;
+		int maxRequests = 1000;
 	};
 	bool getFPMOn() const;
 	const FPMConfig& getFPMConf() const;

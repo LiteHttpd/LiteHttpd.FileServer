@@ -268,8 +268,8 @@ void FileServerModule::createFPMParam(RequestParams::ParamList& fpmParam,
 	fpmParam["PHP_SELF"] = rp.path;
 	fpmParam["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
 	fpmParam["PATH"] = "";
-	fpmParam["PHP_FCGI_CHILDREN"] = "2";
-	fpmParam["PHP_FCGI_MAX_REQUESTS"] = "1000";
+	fpmParam["PHP_FCGI_CHILDREN"] = std::to_string(fpmConf.children);
+	fpmParam["PHP_FCGI_MAX_REQUESTS"] = std::to_string(fpmConf.maxRequests);
 	fpmParam["FCGI_ROLE"] = "RESPONDER";
 	{
 		auto& [major, minor, patch] = version;

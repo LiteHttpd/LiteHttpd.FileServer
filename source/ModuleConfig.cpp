@@ -56,6 +56,16 @@ ModuleConfig::ModuleConfig(const std::string& path) {
 					fpmObj.Get("port", port);
 					this->fpmConf.port = port;
 				}
+
+				/** Get Children */
+				if (fpmObj.KeyExist("fcgi_children")) {
+					fpmObj.Get("fcgi_children", this->fpmConf.children);
+				}
+
+				/** Get Children */
+				if (fpmObj.KeyExist("fcgi_max_requests")) {
+					fpmObj.Get("fcgi_max_requests", this->fpmConf.maxRequests);
+				}
 			}
 		}
 	}

@@ -7,6 +7,8 @@
   "fpm": {
     "surfix": ".php",
     "address": "127.0.0.1",
-    "port":  9000
+    "port": 9000,
+    "fcgi_children": 2,
+    "fcgi_max_requests": 1000
   }
 }
