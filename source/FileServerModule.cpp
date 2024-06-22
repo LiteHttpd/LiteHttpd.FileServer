@@ -2,6 +2,7 @@
 
 #include <regex>
 #include <filesystem>
+#include <cstring>
 
 FileServerModule::FileServerModule() {
 	/** Load Config */
@@ -31,7 +32,11 @@ void FileServerModule::processRequest(const RequestParams& rp) {
 	rp.log(RequestParams::LogLevel::INFO, "Request file path: " + path);
 
 	/** Check Path In Root */
+#if WIN32
 	if (!FileServerModule::isSubpath(root + "/", path)) {
+#else 
+	if (!FileServerModule::isSubpath(root, path)) {
+#endif
 		rp.log(RequestParams::LogLevel::WARNING, "Request file out of root directory!");
 
 		/** Get 403 Path */

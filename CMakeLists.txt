@@ -56,12 +56,21 @@ foreach (ITEM ${MODULE_CONFIG_SRC})
 	cmake_path (CONVERT ${ITEM} TO_NATIVE_PATH_LIST ITEM_INPUT)
 	cmake_path (CONVERT ${ITEM_TARGET} TO_NATIVE_PATH_LIST ITEM_OUTPUT)
 
-    add_custom_command (
-		OUTPUT ${ITEM_TARGET}
-		COMMAND copy ${ITEM_INPUT} ${ITEM_OUTPUT}
-		DEPENDS ${ITEM}
-		COMMENT "Copying module config file: ${ITEM}"
-		VERBATIM)
+	if (WIN32)
+		add_custom_command (
+			OUTPUT ${ITEM_TARGET}
+			COMMAND copy ${ITEM_INPUT} ${ITEM_OUTPUT}
+			DEPENDS ${ITEM}
+			COMMENT "Copying module config file: ${ITEM}"
+			VERBATIM)
+	else ()
+		add_custom_command (
+			OUTPUT ${ITEM_TARGET}
+			COMMAND cp ${ITEM_INPUT} ${ITEM_OUTPUT}
+			DEPENDS ${ITEM}
+			COMMENT "Copying module config file: ${ITEM}"
+			VERBATIM)
+	endif ()
 endforeach (ITEM ${MODULE_CONFIG_SRC})
 add_custom_target (fileserver_module_config_copy
 	DEPENDS ${MODULE_CONFIG_OUTPUT}
@@ -98,6 +107,8 @@ if (MSVC)
 		/SUBSYSTEM:CONSOLE
 	)
 endif (MSVC)
+
+set_target_properties (LiteHttpd.FileServer PROPERTIES PREFIX "" IMPORT_PREFIX "")
 
 # Output Directory
 if (DEFINED OUTPUT_DIR)

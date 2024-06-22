@@ -2,6 +2,7 @@
 
 #include <string>
 #include <ctime>
+#include <cstdint>
 
 class ModuleConfig final {
 public:
