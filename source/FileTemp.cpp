@@ -80,7 +80,7 @@ void FileTemp::checkTempTimeInternal(time_t survivalTime) {
 
 	/** Check Each Temp */
 	for (auto it = this->tempList.begin(); it != tempList.end();) {
-		if (std::get<0>(it->second) < survivalTime) {
+		if (std::get<0>(it->second) < validTime) {
 			it = this->tempList.erase(it);
 			continue;
 		}
