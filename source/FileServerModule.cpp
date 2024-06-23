@@ -388,17 +388,19 @@ void FileServerModule::createFPMParam(RequestParams::ParamList& fpmParam,
 }
 
 const RequestParams::ParamList FileServerModule::parseFPMHeader(const std::vector<char>& data) {
-	RequestParams::ParamList headers;
+	std::map<std::string, std::string> headers;
 
 	auto it = data.begin();
 	while (it != data.end()) {
-		auto line_end = std::search(it, data.end(), "\r\n", "\r\n" + 2);
+		const char* sec = "\r\n";
+		auto line_end = std::search(it, data.end(), sec, sec + 2);
 		if (line_end == it) break;
 
 		auto delimiter_pos = std::find(it, line_end, ':');
 		if (delimiter_pos != line_end) {
 			std::string key(it, delimiter_pos);
-			std::string value(delimiter_pos + 2, line_end);
+			std::string value(delimiter_pos + 1, line_end);
+
 			headers[FileServerModule::trim(key)] = FileServerModule::trim(value);
 		}
 
@@ -409,7 +411,8 @@ const RequestParams::ParamList FileServerModule::parseFPMHeader(const std::vecto
 }
 
 const std::vector<char> FileServerModule::parseFPMContent(const std::vector<char>& data) {
-	auto it = std::search(data.begin(), data.end(), "\r\n\r\n", "\r\n\r\n" + 4);
+	const char* sec = "\r\n\r\n";
+	auto it = std::search(data.begin(), data.end(), sec, sec + 4);
 	if (it != data.end()) {
 		return std::vector<char>{it + 4, data.end()};
 	}
