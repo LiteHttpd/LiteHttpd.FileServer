@@ -6,6 +6,9 @@ FileTemp::FileTemp(time_t survivalTime)
 	: survivalTime(survivalTime) {}
 
 FileTemp::MemoryBlock FileTemp::get(const std::string& path) {
+	/** Check Temp Time */
+	this->checkTempTime();
+
 	/** Result */
 	MemoryBlock result;
 
@@ -38,9 +41,6 @@ FileTemp::MemoryBlock FileTemp::get(const std::string& path) {
 		}
 
 	} while (false);
-
-	/** Check Temp Time */
-	this->checkTempTime();
 
 	/** Return */
 	return result;
