@@ -271,7 +271,15 @@ void FileServerModule::createFPMParam(RequestParams::ParamList& fpmParam,
 		}
 	}
 	fpmParam["PHP_SELF"] = rp.path;
-	fpmParam["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	{
+		auto it = rp.headers.find("Content-Type");
+		if (it != rp.headers.end()) {
+			fpmParam["CONTENT_TYPE"] = it->second;
+		}
+		else {
+			fpmParam["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+		}
+	}
 	fpmParam["PATH"] = "";
 	fpmParam["PHP_FCGI_CHILDREN"] = std::to_string(fpmConf.children);
 	fpmParam["PHP_FCGI_MAX_REQUESTS"] = std::to_string(fpmConf.maxRequests);
