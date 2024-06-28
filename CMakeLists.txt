@@ -79,7 +79,7 @@ add_custom_target (fileserver_module_config_copy
 
 # CJsonObject
 set (CJSON_SRC
-	"${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject/cJson.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject/cJSON.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject/CJsonObject.cpp"
 )
 set (CJSON_INC "${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject")
