@@ -78,11 +78,18 @@ add_custom_target (fileserver_module_config_copy
 	VERBATIM)
 
 # CJsonObject
-set (CJSON_SRC "./CJsonObject/cJson.c" "./CJsonObject/CJsonObject.cpp")
-set (CJSON_INC "./CJsonObject")
+set (CJSON_SRC
+	"${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject/cJson.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject/CJsonObject.cpp"
+)
+set (CJSON_INC "${CMAKE_CURRENT_SOURCE_DIR}/CJsonObject")
 
 # Source
-file (GLOB_RECURSE FILESERVER_SRC CONFIGURE_DEPENDS "./source/*.cpp" "./source/*.c" "./source/*.rc")
+file (GLOB_RECURSE FILESERVER_SRC CONFIGURE_DEPENDS
+	"${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/source/*.c"
+	"${CMAKE_CURRENT_SOURCE_DIR}/source/*.rc"
+)
 
 # Target
 add_library (LiteHttpd.FileServer SHARED ${FILESERVER_SRC} ${CJSON_SRC})
